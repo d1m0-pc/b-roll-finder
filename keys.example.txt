@@ -1,0 +1,15 @@
+# Copy this file to keys.txt (run.bat does it automatically if keys.txt is missing).
+# Fill in only what you have: no spaces around =, no quotes. Empty lines are skipped.
+
+# Stock sites
+PEXELS_KEY=
+PIXABAY_KEY=
+COVERR_KEY=
+
+# YouTube search (Google Cloud Console -> YouTube Data API v3 -> API key)
+YOUTUBE_KEY=
+
+# Suggestions from a transcript (console.anthropic.com -> API keys)
+ANTHROPIC_KEY=
+# Optional: model for suggestions (default claude-haiku-5-5, cheap and fast)
+CLAUDE_MODEL=

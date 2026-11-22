@@ -1,0 +1,24 @@
+# Your API keys: NEVER commit these
+keys.txt
+
+# Local app data (history, favorites)
+data.json
+data.json.tmp
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Downloaded clips and archives
+*.zip
+*.mp4
+out*/
+b-roll/
+
+# Editor and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+node_modules/

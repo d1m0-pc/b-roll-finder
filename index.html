@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>B-roll-finder</title>
+<style>
+  :root { --bg:#0f1115; --card:#1a1d24; --line:#2a2f3a; --txt:#e8eaf0; --mut:#8b92a3; --acc:#4f8cff; --ok:#3ecf8e; }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:15px/1.4 system-ui,Segoe UI,Roboto,sans-serif; }
+  header { position:sticky; top:0; z-index:20; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 20px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .tabs { display:flex; gap:6px; margin-bottom:10px; }
+  .tab { background:transparent; border-color:transparent; color:var(--mut); }
+  .tab.on { background:var(--card); border-color:var(--line); color:var(--txt); }
+  input[type=text], input[type=number], textarea, select, button {
+    padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--txt); font:inherit; font-size:14px; }
+  input[type=text] { flex:1; min-width:220px; }
+  input[type=number] { width:78px; }
+  textarea { width:100%; min-height:110px; resize:vertical; }
+  button { cursor:pointer; }
+  button.primary { background:var(--acc); border-color:var(--acc); color:#fff; font-weight:600; }
+  button:disabled { opacity:.45; cursor:default; }
+  #opts { margin-top:10px; font-size:13px; color:var(--mut); }
+  #opts label { display:inline-flex; gap:5px; align-items:center; }
+  #opts select, #opts input { padding:6px 8px; font-size:13px; }
+  #srcs { display:inline-flex; gap:12px; }
+  #srcs label.off { opacity:.45; }
+  #ytnote { font-size:12px; color:#e0b252; }
+  #chips { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { padding:3px 10px; font-size:12px; border-radius:99px; color:var(--mut); }
+  #msg { padding:10px 20px 0; color:var(--mut); font-size:13px; min-height:26px; }
+  .err { color:#ff7b7b; }
+  .okc { color:var(--ok); }
+  .sec { padding:6px 20px 0; }
+  .sechead { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:14px 0 8px; }
+  .sectitle { font-weight:600; font-size:16px; }
+  .outlinks { font-size:12px; color:var(--mut); margin-left:auto; }
+  .outlinks a { color:var(--acc); text-decoration:none; }
+  .secfoot { display:flex; gap:12px; align-items:center; margin:10px 0 6px; color:var(--mut); font-size:13px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px; }
+  .card { position:relative; background:var(--card); border:2px solid var(--line); border-radius:12px; overflow:hidden; cursor:pointer; }
+  .card.sel { border-color:var(--acc); }
+  .media { position:relative; aspect-ratio:16/9; background:#000; }
+  .media img, .media video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .tick { position:absolute; top:8px; left:8px; min-width:26px; height:26px; padding:0 4px; border-radius:7px; background:rgba(0,0,0,.55); border:2px solid #fff; z-index:3; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:13px; }
+  .card.sel .tick { background:var(--acc); border-color:var(--acc); }
+  .badge, .src { position:absolute; z-index:3; background:rgba(0,0,0,.7); border-radius:6px; padding:2px 7px; font-size:12px; }
+  .badge { right:8px; bottom:8px; } .src { right:8px; top:8px; }
+  .star { position:absolute; left:8px; bottom:6px; z-index:4; background:rgba(0,0,0,.55); border:0; border-radius:6px; color:#ffd24d; font-size:17px; padding:0 6px; line-height:24px; }
+  .usedtag { position:absolute; left:8px; top:40px; z-index:3; background:var(--ok); color:#06240f; border-radius:6px; padding:1px 7px; font-size:11px; font-weight:600; display:none; }
+  .card.used .usedtag { display:block; }
+  .meta { padding:8px 10px; font-size:12px; color:var(--mut); display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .meta span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .meta select, .meta2 input { padding:3px 6px; font-size:12px; border-radius:6px; }
+  .meta2 { padding:0 10px 9px; font-size:12px; color:var(--mut); display:flex; gap:6px; align-items:center; }
+  .meta2 input { width:58px; }
+  .meta2 a { color:var(--acc); margin-left:auto; text-decoration:none; }
+  #bar { position:fixed; left:0; right:0; bottom:0; z-index:30; background:var(--card); border-top:1px solid var(--line); padding:10px 20px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  #bar .grow { flex:1; min-width:200px; display:flex; gap:8px; align-items:center; }
+  #bar label { font-size:13px; color:var(--mut); display:inline-flex; gap:5px; align-items:center; }
+  #tray { position:fixed; left:20px; bottom:70px; z-index:31; width:min(520px,90vw); max-height:50vh; overflow:auto; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px; }
+  #tray div { display:flex; gap:8px; align-items:center; padding:5px 6px; font-size:13px; }
+  #tray div span { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #tray button { padding:1px 8px; }
+  #lnk { flex:1; min-width:220px; min-height:40px; height:40px; width:auto; resize:vertical; }
+  #pad { height:150px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="tabs">
+    <button class="tab on" data-tab="search">Search</button>
+    <button class="tab" data-tab="transcript">Transcript</button>
+    <button class="tab" data-tab="favs">Favorites</button>
+  </div>
+
+  <div id="p-search">
+    <form id="f" class="row">
+      <input type="text" id="q" placeholder="Search phrases, separated by commas (e.g. cyber security, hacker typing, server room)" autofocus>
+      <button class="primary" type="submit">Search</button>
+    </form>
+    <div id="chips"></div>
+    <div class="row" id="linkrow" style="margin-top:8px">
+      <textarea id="lnk" rows="2" placeholder="Or paste one or more links (Pinterest, TikTok, Instagram, YouTube, Vimeo), one per line"></textarea>
+      <input type="number" id="lnk_s" min="0" placeholder="from s" style="width:78px">
+      <input type="number" id="lnk_e" min="1" placeholder="to s" style="width:78px">
+      <button id="lnkadd">Add links</button>
+    </div>
+  </div>
+
+  <div id="p-transcript" hidden>
+    <textarea id="tx" placeholder="Paste the transcript of your podcast clip. Claude suggests keywords for each part and the app searches for clips right away."></textarea>
+    <div class="row" style="margin-top:8px">
+      <button class="primary" id="sug">Suggest B-roll</button>
+      <span id="sugmsg" style="color:var(--mut);font-size:13px"></span>
+    </div>
+  </div>
+
+  <div id="opts" class="row">
+    <select id="ori">
+      <option value="">Any orientation</option>
+      <option value="landscape">Landscape 16:9</option>
+      <option value="portrait">Portrait 9:16</option>
+    </select>
+    <span id="srcs"></span>
+    <label>Duration <input type="number" id="min_dur" min="0" placeholder="min s"> – <input type="number" id="max_dur" min="0" placeholder="max s"></label>
+    <select id="min_h">
+      <option value="">Any quality</option>
+      <option value="720">min 720p</option>
+      <option value="1080">min 1080p</option>
+      <option value="2160">min 4K</option>
+    </select>
+    <select id="sort">
+      <option value="">Default order</option>
+      <option value="duration_desc">Longest first</option>
+      <option value="duration_asc">Shortest first</option>
+    </select>
+    <select id="yt_dur" hidden>
+      <option value="short">YouTube: short (under 4 min)</option>
+      <option value="medium">YouTube: medium (4–20 min)</option>
+      <option value="any">YouTube: any length</option>
+    </select>
+    <span id="ytnote" hidden>YouTube clips belong to others: check the rights before publishing. Empty from/to means the first 60 s.</span>
+  </div>
+</header>
+
+<div id="msg"></div>
+<div id="out"></div>
+<div id="pad"></div>
+
+<div id="tray" hidden></div>
+<div id="bar">
+  <button id="trayBtn"><b id="cnt">0</b> selected ▾</button>
+  <div class="grow">
+    <label><input type="radio" name="mode" value="folder" checked> Folder</label>
+    <input type="text" id="folder" placeholder="Folder path">
+    <button id="pick">Browse…</button>
+    <label><input type="radio" name="mode" value="zip"> ZIP</label>
+  </div>
+  <label title="Crops the clip to vertical 9:16 (1080×1920), needs ffmpeg"><input type="checkbox" id="vertical"> 9:16</label>
+  <label title="Adds 01_, 02_… in selection order"><input type="checkbox" id="numbered" checked> Number</label>
+  <button id="clear">Clear</button>
+  <button id="dl" class="primary" disabled>Download</button>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const slug = s => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 30) || 'klip';
+const fmt = s => s ? `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}` : '';
+const out = $('#out'), msg = $('#msg');
+let ST = { sources:{}, tools:{}, favorites:[], history:[], folder:'' };
+const selected = new Map();   // id -> download record (selection order is kept)
+
+/* ------------------------------------------------ state and options */
+async function loadState() {
+  try { ST = await (await fetch('/api/state')).json(); } catch (e) { return; }
+  if (!$('#srcs').children.length) {
+    for (const [name, label] of [['pexels','Pexels'],['pixabay','Pixabay'],['coverr','Coverr'],['youtube','YouTube']]) {
+      const has = ST.sources[name];
+      const l = document.createElement('label');
+      if (!has) { l.className = 'off'; l.title = 'No key in keys.txt'; }
+      l.innerHTML = `<input type="checkbox" value="${name}" ${has && name !== 'youtube' ? 'checked' : ''} ${has ? '' : 'disabled'}> ${label}`;
+      $('#srcs').appendChild(l);
+    }
+    $('#srcs').addEventListener('change', toggleYT);
+  }
+  if (!$('#folder').value) $('#folder').value = ST.folder || '';
+  $('#vertical').disabled = !ST.tools.ffmpeg;
+  if (!ST.tools.ffmpeg) $('#vertical').parentElement.title = 'ffmpeg not found';
+  renderChips();
+  if (!Object.values(ST.sources).some(Boolean)) msg.innerHTML = '<span class="err">Add at least one API key to keys.txt and restart the app.</span>';
+}
+function toggleYT() {
+  const on = !!document.querySelector('#srcs input[value=youtube]:checked');
+  $('#yt_dur').hidden = !on; $('#ytnote').hidden = !on;
+}
+function renderChips() {
+  const c = $('#chips'); c.innerHTML = '';
+  for (const h of ST.history.slice(0, 10)) {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = h;
+    b.onclick = () => { $('#q').value = h; startSearch(); };
+    c.appendChild(b);
+  }
+}
+function getOpts() {
+  return { ori: $('#ori').value, min_dur: $('#min_dur').value, max_dur: $('#max_dur').value,
+    min_h: $('#min_h').value, sort: $('#sort').value, yt_dur: $('#yt_dur').value,
+    src: [...document.querySelectorAll('#srcs input:checked')].map(i => i.value) };
+}
+
+/* ------------------------------------------------ cards */
+function pickFile(it, h) {
+  const fs = it.files.slice();
+  if (!h) return fs[fs.length - 1];
+  return fs.sort((a, b) => Math.abs(Math.min(a.w,a.h) - h) - Math.abs(Math.min(b.w,b.h) - h))[0];
+}
+function buildRec(card) {
+  const it = card._it;
+  const sel = card.querySelector('select.q');
+  const h = sel ? +sel.value : 0;
+  const rec = { id: it.id, kind: it.kind, source: it.source, h,
+    title: it.title || it.author || it.id,
+    name: `${slug(card._query)}_${it.source}_${it.id.split('-').slice(1).join('-')}${h ? '_' + h + 'p' : ''}` };
+  if (it.kind === 'youtube') {
+    rec.vid = it.vid;
+    rec.start = card.querySelector('.ts').value; rec.end = card.querySelector('.te').value;
+  } else rec.url = pickFile(it, h).url;
+  return rec;
+}
+function makeCard(it, query) {
+  const card = document.createElement('div');
+  card.className = 'card' + (it.used ? ' used' : '');
+  card.dataset.id = it.id; card._it = it; card._query = query;
+  const yt = it.kind === 'youtube';
+  const qs = yt ? [360, 480, 720, 1080]
+    : [...new Set(it.files.map(f => Math.min(f.w, f.h)).filter(Boolean))].sort((a, b) => a - b);
+  const def = yt ? 1080 : (qs.includes(1080) ? 1080 : qs[qs.length - 1]);
+  const dim = it.w && it.h ? ` · ${it.w}×${it.h}` : '';
+  card.innerHTML = `
+    <div class="media">
+      <img src="${esc(it.thumb || '')}" loading="lazy" alt="">
+      <div class="tick"></div>
+      <div class="usedtag">downloaded</div>
+      <div class="src">${esc(it.source)}</div>
+      <div class="badge">${fmt(it.duration)}${dim}</div>
+      <button class="star" title="Favorite">${it.fav ? '★' : '☆'}</button>
+    </div>
+    <div class="meta">
+      <span title="${esc(it.title || it.author)}">${esc((it.title || it.author || '').slice(0, 40))}</span>
+      ${qs.length ? `<select class="q">${qs.map(q => `<option value="${q}" ${q === def ? 'selected' : ''}>${q}p</option>`).join('')}</select>` : ''}
+    </div>
+    ${yt ? `<div class="meta2">from <input class="ts" type="number" min="0" placeholder="0"> to <input class="te" type="number" min="1" placeholder="60"> s
+      <a href="${esc(it.page)}" target="_blank" rel="noopener">▶ open</a></div>` : ''}`;
+
+  const media = card.querySelector('.media');
+  if (it.preview) {
+    let vid = null;
+    media.addEventListener('mouseenter', () => {
+      vid = document.createElement('video');
+      vid.src = it.preview; vid.muted = true; vid.loop = true; vid.autoplay = true; vid.playsInline = true;
+      media.insertBefore(vid, media.querySelector('.tick'));
+    });
+    media.addEventListener('mouseleave', () => { if (vid) { vid.remove(); vid = null; } });
+  }
+  card.querySelectorAll('select,input,a').forEach(el => el.addEventListener('click', e => e.stopPropagation()));
+  card.querySelectorAll('select,input').forEach(el => el.addEventListener('change', () => {
+    if (selected.has(it.id)) { selected.set(it.id, buildRec(card)); renderSelection(); }
+  }));
+  card.querySelector('.star').addEventListener('click', async e => {
+    e.stopPropagation();
+    try {
+      const d = await (await fetch('/api/fav', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ item: it }) })).json();
+      if (d.error) return;
+      it.fav = d.fav;
+      document.querySelectorAll(`.card[data-id="${CSS.escape(it.id)}"] .star`).forEach(s => s.textContent = d.fav ? '★' : '☆');
+    } catch (_) {}
+  });
+  card.addEventListener('click', () => {
+    if (selected.has(it.id)) selected.delete(it.id); else selected.set(it.id, buildRec(card));
+    renderSelection();
+  });
+  return card;
+}
+
+function renderSelection() {
+  const ids = [...selected.keys()];
+  document.querySelectorAll('.card').forEach(c => {
+    const i = ids.indexOf(c.dataset.id);
+    c.classList.toggle('sel', i >= 0);
+    c.querySelector('.tick').textContent = i >= 0 ? i + 1 : '';
+  });
+  $('#cnt').textContent = ids.length;
+  $('#dl').disabled = !ids.length;
+  renderTray();
+}
+function renderTray() {
+  const t = $('#tray');
+  if (t.hidden) return;
+  t.innerHTML = '';
+  if (!selected.size) { t.innerHTML = '<div><span>Nothing selected</span></div>'; return; }
+  [...selected.values()].forEach((r, i) => {
+    const d = document.createElement('div');
+    d.innerHTML = `<b>${i + 1}</b><span>${esc(r.source)} · ${esc(r.title)}</span><button>×</button>`;
+    d.querySelector('button').onclick = () => { selected.delete(r.id); renderSelection(); };
+    t.appendChild(d);
+  });
+}
+$('#trayBtn').onclick = () => { $('#tray').hidden = !$('#tray').hidden; renderTray(); };
+$('#clear').onclick = () => { selected.clear(); renderSelection(); };
+
+/* ------------------------------------------------ sections and search */
+function addSection({ title, keywords = [], query, perPage }) {
+  const sec = { query, page: 1, perPage, busy: false };
+  const el = document.createElement('section'); el.className = 'sec';
+  el.innerHTML = `<div class="sechead"><div class="sectitle"></div><div class="chips2 row"></div><div class="outlinks"></div></div>
+    <div class="grid"></div>
+    <div class="secfoot"><span class="smsg"></span><button class="more" hidden>Load more</button></div>`;
+  el.querySelector('.sectitle').textContent = title;
+  sec.grid = el.querySelector('.grid'); sec.msg = el.querySelector('.smsg'); sec.more = el.querySelector('.more');
+  const ch = el.querySelector('.chips2');
+  keywords.forEach(k => {
+    const b = document.createElement('button'); b.className = 'chip'; b.textContent = k;
+    b.onclick = () => { sec.query = k; updateLinks(sec); loadSection(sec, true); };
+    ch.appendChild(b);
+  });
+  sec.more.onclick = () => { sec.page++; loadSection(sec, false); };
+  sec.links = el.querySelector('.outlinks');
+  out.appendChild(el);
+  if (query && perPage) updateLinks(sec);
+  return sec;
+}
+
+// platforms without a search API: open their search page in a new tab
+function updateLinks(sec) {
+  const q = encodeURIComponent(sec.query), tag = encodeURIComponent(sec.query.toLowerCase().replace(/[^a-z0-9]+/g, ''));
+  const L = [['Pinterest', `https://www.pinterest.com/search/pins/?q=${q}`],
+             ['TikTok', `https://www.tiktok.com/search/video?q=${q}`],
+             ['Instagram', `https://www.instagram.com/explore/tags/${tag}/`],
+             ['YouTube', `https://www.youtube.com/results?search_query=${q}`]];
+  sec.links.innerHTML = 'Open on: ' + L.map(([n, u]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${n}</a>`).join(' · ');
+}
+
+let linkN = 0;
+$('#lnkadd').onclick = () => {
+  const urls = [...new Set($('#lnk').value.match(/https?:\/\/[^\s,;"'<>]+/g) || [])].slice(0, 50);
+  const have = new Set([...selected.values()].map(r => r.url));
+  let added = 0, dup = 0;
+  for (const url of urls) {
+    if (have.has(url)) { dup++; continue; }
+    let host;
+    try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (_) { continue; }
+    const id = `link-${Date.now()}-${linkN}`;
+    selected.set(id, { id, kind: 'link', source: host, url, h: 1080, title: url,
+      start: $('#lnk_s').value, end: $('#lnk_e').value, name: `link_${slug(host)}_${++linkN}` });
+    added++;
+  }
+  if (!added) {
+    msg.innerHTML = `<span class="err">${dup ? 'Those links are already selected.' : 'Paste at least one valid link (starting with https://).'}</span>`;
+    return;
+  }
+  $('#lnk').value = ''; $('#lnk_s').value = ''; $('#lnk_e').value = '';
+  msg.innerHTML = `<span class="okc">Links added: ${added}${dup ? ` (duplicates skipped: ${dup})` : ''}.</span> ` +
+    'The same from/to applies to all; empty means the whole clip (up to 10 min). Click Download to get them all at once.';
+  renderSelection();
+};
+
+async function loadSection(sec, reset) {
+  if (sec.busy) return; sec.busy = true;
+  if (reset) { sec.page = 1; sec.grid.innerHTML = ''; }
+  const o = getOpts();
+  if (!o.src.length) { sec.msg.innerHTML = '<span class="err">Select at least one source.</span>'; sec.busy = false; return; }
+  sec.msg.textContent = 'Searching…';
+  const p = new URLSearchParams({ q: sec.query, page: sec.page, per_page: sec.perPage,
+    orientation: o.ori, src: o.src.join(','), yt_dur: o.yt_dur, sort: o.sort });
+  if (o.min_dur) p.set('min_dur', o.min_dur);
+  if (o.max_dur) p.set('max_dur', o.max_dur);
+  if (o.min_h) p.set('min_h', o.min_h);
+  try {
+    const d = await (await fetch('/api/search?' + p)).json();
+    d.results.forEach(it => sec.grid.appendChild(makeCard(it, sec.query)));
+    renderSelection();
+    let t = sec.grid.children.length ? `${sec.grid.children.length} results` : 'No results for these filters.';
+    if (d.errors.length) t += ` · <span class="err">${d.errors.map(esc).join(' | ')}</span>`;
+    sec.msg.innerHTML = t;
+    sec.more.hidden = !d.has_more;
+  } catch (e) { sec.msg.innerHTML = `<span class="err">Error: ${esc(e)}</span>`; }
+  sec.busy = false;
+}
+
+async function startSearch() {
+  const phrases = $('#q').value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 8);
+  if (!phrases.length) return;
+  msg.textContent = ''; out.innerHTML = '';
+  const secs = phrases.map(ph => addSection({ title: ph, query: ph, perPage: phrases.length > 1 ? 8 : 15 }));
+  await Promise.all(secs.map(s => loadSection(s, true)));
+  loadState();
+}
+$('#f').addEventListener('submit', e => { e.preventDefault(); startSearch(); });
+
+/* ------------------------------------------------ transcript */
+$('#sug').onclick = async () => {
+  const text = $('#tx').value.trim();
+  if (!text) return;
+  const btn = $('#sug'); btn.disabled = true; $('#sugmsg').textContent = 'Claude is analyzing the text…';
+  try {
+    const r = await fetch('/api/suggest', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || r.status);
+    $('#sugmsg').textContent = `${d.segments.length} suggestions`;
+    msg.textContent = ''; out.innerHTML = '';
+    const secs = d.segments.map(s => addSection({ title: '“' + s.text + '”', keywords: s.keywords, query: s.keywords[0], perPage: 8 }));
+    await Promise.all(secs.map(s => loadSection(s, true)));
+  } catch (e) { $('#sugmsg').innerHTML = `<span class="err">${esc(e.message || e)}</span>`; }
+  btn.disabled = false;
+};
+
+/* ------------------------------------------------ tabs */
+document.querySelectorAll('.tab').forEach(t => t.onclick = async () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === t));
+  const tab = t.dataset.tab;
+  $('#p-search').hidden = tab !== 'search';
+  $('#p-transcript').hidden = tab !== 'transcript';
+  if (tab === 'favs') {
+    await loadState();
+    msg.textContent = ''; out.innerHTML = '';
+    const sec = addSection({ title: `Favorites (${ST.favorites.length})`, query: 'favorit', perPage: 0 });
+    ST.favorites.forEach(it => sec.grid.appendChild(makeCard(it, 'fav')));
+    sec.msg.textContent = ST.favorites.length ? '' : 'No favorites yet. Click ☆ on a clip.';
+    renderSelection();
+  }
+});
+
+/* ------------------------------------------------ download */
+$('#pick').onclick = async () => {
+  try {
+    const r = await fetch('/api/pick-folder', { method:'POST' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    $('#folder').value = d.folder;
+  } catch (e) { msg.innerHTML = `<span class="err">${esc(e.message || e)}</span>`; }
+};
+
+function markUsed(ids) {
+  ids.forEach(id => {
+    document.querySelectorAll(`.card[data-id="${CSS.escape(id)}"]`).forEach(c => { c.classList.add('used'); c._it.used = true; });
+    selected.delete(id);
+  });
+  renderSelection();
+}
+
+$('#dl').onclick = async () => {
+  const btn = $('#dl'), old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Downloading…';
+  msg.textContent = 'Downloading (YouTube trims and 9:16 take longer)…';
+  const mode = document.querySelector('input[name=mode]:checked').value;
+  try {
+    const r = await fetch('/api/download', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ items: [...selected.values()], mode, folder: $('#folder').value.trim(),
+        vertical: $('#vertical').checked, numbered: $('#numbered').checked }) });
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.status);
+    if (mode === 'folder') {
+      const d = await r.json();
+      msg.innerHTML = `<span class="okc">Saved ${d.saved.length} clips to ${esc(d.folder)}</span>` +
+        (d.failed.length ? ` · <span class="err">${d.failed.map(esc).join(' | ')}</span>` : '');
+      markUsed(d.ids);
+    } else {
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'b-roll-clips.zip'; a.click();
+      URL.revokeObjectURL(a.href);
+      const ids = (r.headers.get('X-Done-Ids') || '').split(',').filter(Boolean);
+      const bad = decodeURIComponent(r.headers.get('X-Failed-Info') || '');
+      msg.innerHTML = `<span class="okc">ZIP downloaded (${ids.length} clips)</span>` + (bad ? ` · <span class="err">${esc(bad)}</span>` : '');
+      markUsed(ids);
+    }
+  } catch (e) { msg.innerHTML = `<span class="err">Error: ${esc(e.message || e)}</span>`; }
+  btn.textContent = old; btn.disabled = !selected.size;
+};
+
+loadState();
+</script>
+</body>
+</html>
