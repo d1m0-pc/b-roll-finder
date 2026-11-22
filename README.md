@@ -55,7 +55,3 @@ Put them in `keys.txt` as `NAME=value`, with no spaces and no quotes. **Never co
 - Mixkit and Videvo have no public API, so they are not included.
 - The app only listens on `127.0.0.1` and rejects requests from other sites.
 - Search history and favorites are stored in `data.json` next to the app.
-
-## License
-
-Add a license file (for example MIT) before sharing the code publicly.
